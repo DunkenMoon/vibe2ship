@@ -1,26 +1,19 @@
 {
-  "name": "vibe2ship-dev",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "bradlc.vscode-tailwindcss",
-        "esbenp.prettier-vscode",
-        "ms-vscode.vscode-typescript-next",
-        "usernamehw.errorlens",
-        "eamodio.gitlens",
-        "github.copilot-chat",
-        "ms-azuretools.vscode-docker"
-      ]
-    }
-  },
-  "forwardPorts": [3000],
-  "workspaceFolder": "/workspace",
-  "remoteUser": "vscode",
-  "postCreateCommand": "npm ci",
-  "settings": {
-    "terminal.integrated.defaultProfile.linux": "bash",
-    "editor.formatOnSave": true
-  }
+"name": "vibe2ship-dev",
+"image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+"customizations": {
+"vscode": {
+"extensions": [
+"dbaeumer.vscode-eslint",
+"bradlc.vscode-tailwindcss",
+"esbenp.prettier-vscode",
+"ms-vscode.vscode-typescript-next",
+"usernamehw.errorlens",
+"eamodio.gitlens",
+"github.copilot-chat",
+"ms-azuretools.vscode-docker"
+]
+}
+},
+"postCreateCommand": "npm install -g vercel create-next-app"
 }
