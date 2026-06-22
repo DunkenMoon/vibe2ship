@@ -1,36 +1,71 @@
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
+
+@theme {
+  --color-ivory: #FAF7F2;
+  --color-ivory-deep: #F2EDE4;
+  --color-ink: #1A1208;
+  --color-ink-light: #3D2E1A;
+  --color-ink-muted: #7A6A58;
+  --color-gold: #C9A84C;
+  --color-teal: #5BBFBF;
+  --color-coral: #E8957A;
+  --color-irid-gold: #D4AF6A;
+  --color-background: #FAF7F2;
+  --color-border: #E8E0D5;
+  --color-card: #FFFFFF;
+  --font-display: "Cormorant Garamond", serif;
+  --font-sans: "DM Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
 :root {
---ivory: #FAF7F2;
---ivory-deep: #F2EDE4;
---ink: #1A1208;
---ink-light: #3D2E1A;
---ink-muted: #7A6A58;
---gold: #C9A84C;
---teal: #5BBFBF;
---coral: #E8957A;
---irid-gold: #D4AF6A;
+  --ivory: #FAF7F2;
+  --ivory-deep: #F2EDE4;
+  --ink: #1A1208;
+  --ink-muted: #7A6A58;
+  --teal: #5BBFBF;
+  --gold: #C9A84C;
+  --coral: #E8957A;
+  --irid-gold: #D4AF6A;
 }
+
 body {
-background: var(--ivory);
-color: var(--ink);
-font-family: 'DM Sans', sans-serif;
+  background: var(--ivory);
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
 }
-.irid-text {
-background: linear-gradient(135deg, #5BBFBF 0%, #D4AF6A 45%, #E8957A 100%);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-background-clip: text;
+
+.irid-text,
+.iridescent-text {
+  background: linear-gradient(135deg, #5BBFBF 0%, #D4AF6A 45%, #E8957A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
+
+.iridescent {
+  background: linear-gradient(135deg, #5BBFBF 0%, #D4AF6A 45%, #E8957A 100%);
+}
+
+.iridescent-border {
+  background: linear-gradient(135deg, #5BBFBF, #D4AF6A, #E8957A);
+  padding: 1.5px;
+  border-radius: 1rem;
+}
+
 .shimmer-btn {
-background: linear-gradient(90deg, #5BBFBF, #D4AF6A, #E8957A, #5BBFBF);
-background-size: 300% auto;
-animation: shimmer 3s linear infinite;
-border: none; color: white; cursor: pointer;
-font-family: 'DM Sans', sans-serif;
-font-weight: 600;
+  background: linear-gradient(90deg, #5BBFBF, #D4AF6A, #E8957A, #5BBFBF);
+  background-size: 300% auto;
+  animation: shimmer 3s linear infinite;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 600;
 }
+
 @keyframes shimmer {
-0% { background-position: -200% center; }
-100% { background-position: 200% center; }
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
