@@ -20,6 +20,17 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Environment variables
+
+This project expects a Genie/Gemini API key for the AI analysis API. Create a local `.env.local` file (not checked into git) with the following entry:
+
+```bash
+# Copy from .env.example
+GEMINI_API_KEY=your_actual_gemini_api_key_here
+```
+
+A missing or invalid `GEMINI_API_KEY` will cause the `/api/analyze` endpoint to return a 500 with a descriptive error message.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

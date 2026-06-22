@@ -87,7 +87,8 @@ export function UploadSection() {
           <button
             type="button"
             onClick={handleAnalyze}
-            disabled={!selectedFile || isAnalyzing}
+            disabled={isAnalyzing}
+            suppressHydrationWarning
             className="shimmer-btn mt-6 w-full rounded-full px-6 py-3 font-sans text-sm font-medium shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isAnalyzing ? "Analyzing…" : "Analyze Issue"}

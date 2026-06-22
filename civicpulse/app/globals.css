@@ -1,5 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
-@import "tailwindcss";
+@import url("tailwindcss");
 
 @theme {
   --color-ivory: #FAF7F2;
@@ -13,7 +13,7 @@
   --color-irid-gold: #D4AF6A;
   --color-background: #FAF7F2;
   --color-border: #E8E0D5;
-  --color-card: #FFFFFF;
+  --color-card: #fff;
   --font-display: "Cormorant Garamond", serif;
   --font-sans: "DM Sans", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -38,10 +38,11 @@ body {
 
 .irid-text,
 .iridescent-text {
-  background: linear-gradient(135deg, #5BBFBF 0%, #D4AF6A 45%, #E8957A 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: linear-gradient(135deg, #5bbfbf 0%, #d4af6a 45%, #e8957a 100%);
   background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-background-clip: text;
 }
 
 .iridescent {
