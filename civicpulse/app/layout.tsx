@@ -1,40 +1,40 @@
-import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from 'next/font/google'
+import './globals.css'
 
 const cormorant = Cormorant_Garamond({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["300", "400", "600"],
-  style: ["normal", "italic"],
-});
+  variable: '--font-display',
+  weight: ['300', '400', '500'],
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+})
 
 const dmSans = DM_Sans({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-});
+  variable: '--font-body',
+  subsets: ['latin'],
+})
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-});
+  variable: '--font-mono',
+  subsets: ['latin'],
+})
 
 export const metadata: Metadata = {
-  title: "CivicPulse — Report Civic Issues",
-  description: "AI-powered civic issue reporting for Indian communities.",
-};
+  title: 'CivicPulse — Report it. Watch it act.',
+  description: 'CivicPulse turns a photo and a location into a routed civic report. Powered by Google AI Studio. Built for India\'s communities.',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${dmSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${cormorant.variable} ${dmSans.variable} ${jetbrainsMono.variable} bg-background`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="font-sans antialiased">{children}</body>
     </html>
-  );
+  )
 }
