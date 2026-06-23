@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { UploadCloud, MapPin } from "lucide-react";
-import { ReasoningReveal } from "components/ReasoningReveal";
+import { ReasoningReveal } from "@/components/ReasoningReveal";
 
 interface Step { step: string; result: unknown; }
 

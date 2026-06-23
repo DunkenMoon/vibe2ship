@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
   try {
     const { imageBase64, mimeType, lat, lon, existingReports = [] } = await req.json();
 
-    // STEP 1 — Classify
     let classification = { category: "other", description: "Unable to classify", confidence: 0 };
     try {
       const classifyResponse = await ai.models.generateContent({
@@ -37,7 +36,7 @@ export async function POST(req: NextRequest) {
           role: "user",
           parts: [
             { inlineData: { mimeType: mimeType ?? "image/jpeg", data: imageBase64 } },
-            { text: "You are analyzing a photo of a civic infrastructure issue in India.\nClassify it into exactly one of: pothole, water_leakage, streetlight, waste_management, other\nProvide a factual one-sentence description of what is visible.\nProvide a confidence score from 0.0 to 1.0.\nRespond ONLY with valid JSON, no markdown, no extra text:\n{\"category\":\"...\",\"description\":\"...\",\"confidence\":0.0}" },
+            { text: `You are analyzing a photo of a civic infrastructure issue in India.\nClassify it into exactly one of: pothole, water_leakage, streetlight, waste_management, other\nProvide a factual one-sentence description of what is visible.\nProvide a confidence score from 0.0 to 1.0.\nRespond ONLY with valid JSON, no markdown, no extra text:\n{"category":"...","description":"...","confidence":0.0}` },
           ],
         }],
         config: { responseMimeType: "application/json" },
@@ -48,7 +47,6 @@ export async function POST(req: NextRequest) {
       console.error("Classify error:", err);
     }
 
-    // STEP 2 — Duplicate check (pure logic)
     const duplicates = (existingReports as ExistingReport[]).filter(
       (r) => r.category === classification.category && haversine(lat, lon, r.lat, r.lon) <= 100
     );
@@ -65,7 +63,6 @@ export async function POST(req: NextRequest) {
       ? `${duplicates.length} similar report(s) already exist within 100 metres.`
       : "No duplicate reports found nearby.";
 
-    // STEPS 3 + 4 — Concurrent via Promise.allSettled
     let severityResult = "Urgency: 3/5\nModerate severity requiring attention.";
     let grounded = false;
     let reportText = "Unable to generate report.";
@@ -82,7 +79,10 @@ export async function POST(req: NextRequest) {
             config: { tools: [{ googleSearch: {} }] },
           });
           const parts = res.candidates?.[0]?.content?.parts ?? [];
-          const text = parts.filter((p: { text?: string }) => p.text).map((p: { text?: string }) => p.text).join("");
+          const text = parts
+            .filter((p: { text?: string }) => p.text)
+            .map((p: { text?: string }) => p.text)
+            .join("");
           if (text) return { text, grounded: true };
         } catch {
           const fallback = await ai.models.generateContent({
