@@ -84,9 +84,10 @@ export function UploadSection() {
       const allSteps = data.steps ?? [];
       setAnalysisSteps([]);
       allSteps.forEach((step: { step: string; result: unknown }, index: number) => {
-        setTimeout(() => {
+        const id = setTimeout(() => {
           setAnalysisSteps((prev) => [...prev, step]);
         }, index * 600);
+        timeoutIds.current.push(id);
       });
       setIsAnalyzing(false);
     } catch (err) {
