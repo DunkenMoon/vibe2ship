@@ -299,7 +299,7 @@ export function UploadSection() {
 
                 <div className="flex flex-wrap gap-4 mb-4 text-sm font-mono text-[#7A6A58]">
                   <span>Category: <strong className="text-[#1A1208]">{analysisSteps.find((s) => s.step === 'classify')?.result?.category}</strong></span>
-                  <span>Severity: <strong className="text-[#1A1208]">{analysisSteps.find((s) => s.step === 'severity_assessment')?.result?.urgencyScore}/5</strong></span>
+                  <span>Severity: <strong className="text-[#1A1208]">{analysisSteps.find((s) => s.step === 'severity_assessment')?.result?.assessment?.match(/(\d)/)?.[1] ?? '3'}/5</strong></span>
                   <span>Department: <strong className="text-[#1A1208]">{analysisSteps.find((s) => s.step === 'final_report')?.result?.report?.department}</strong></span>
                 </div>
 

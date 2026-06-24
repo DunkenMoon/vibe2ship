@@ -21,9 +21,11 @@ export function CivicMap({ reports, selectedId, onMarkerClick }: CivicMapProps) 
   const markersRef = useRef<Record<string, import('leaflet').CircleMarker>>({})
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return
+    if (!containerRef.current) return
+    if (mapRef.current) return
 
     import('leaflet').then((L) => {
+      if (mapRef.current) return
       delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
