@@ -14,6 +14,9 @@ const FALLBACK_MODELS = [
   "gemini-3.5-flash",
 ];
 
+// Simple in-memory rate guard for demo safety (warn only)
+let analyzeRequestCount = 0;
+
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000;
   const toRad = (d: number) => (d * Math.PI) / 180;
@@ -71,29 +74,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Rate-guard: increment request count and warn if approaching daily free-tier cap
+    analyzeRequestCount++;
+    if (analyzeRequestCount > 15) {
+      console.warn("[rate-guard] approaching free-tier daily limit — consider waiting for quota reset");
+    }
+
     console.log("[step1] classifying image...");
-    let classification = {
+    let classification: any = {
       category: "other",
       description: "Unable to classify",
       confidence: 0,
     };
-    try {
-      const classifyResponse = await ai.models.generateContent({
-        model: MODEL,
-        contents: [{
-          role: "user",
-          parts: [
-            { inlineData: { mimeType: mimeType, data: imageBase64 } },
-            {
-              text: `You are analyzing a photo of a civic infrastructure issue in India.
+
+    // Prepare the exact contents used for classification so fallbacks reuse it
+    const classifyContents = [{
+      role: "user",
+      parts: [
+        { inlineData: { mimeType: mimeType, data: imageBase64 } },
+        {
+          text: `You are analyzing a photo of a civic infrastructure issue in India.
 Classify it into exactly one of: pothole, water_leakage, streetlight, waste_management, other
 Provide a factual one-sentence description of what is visible.
 Provide a confidence score from 0.0 to 1.0.
 Respond ONLY with valid JSON, no markdown, no code blocks, no extra text:
 {"category":"...","description":"...","confidence":0.0}`,
-            },
-          ],
-        }],
+        },
+      ],
+    }];
+
+    let lastErr: unknown = undefined;
+    try {
+      const classifyResponse = await ai.models.generateContent({
+        model: MODEL,
+        contents: classifyContents,
         config: { responseMimeType: "application/json" },
       });
       const raw = classifyResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
@@ -111,6 +125,47 @@ Respond ONLY with valid JSON, no markdown, no code blocks, no extra text:
       console.log("[step1] classification result:", classification);
     } catch (err) {
       console.error("[step1] classify error:", err);
+      lastErr = err;
+      // Try fallbacks in order using same contents
+      let fallbackSucceeded = false;
+      for (const fallbackModel of FALLBACK_MODELS) {
+        console.log(`[step1] trying fallback model: ${fallbackModel}`);
+        try {
+          const fallbackRes = await withTimeout(
+            ai.models.generateContent({ model: fallbackModel, contents: classifyContents, config: { responseMimeType: "application/json" } }),
+            8000,
+            `fallback classify call ${fallbackModel}`
+          );
+          const raw = fallbackRes.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+          const cleaned = raw
+            .replace(/```json\s*/gi, "")
+            .replace(/```\s*/g, "")
+            .replace(/^\s*[\r\n]+/, "")
+            .trim();
+          const jsonStart = cleaned.indexOf("{");
+          const jsonEnd = cleaned.lastIndexOf("}");
+          const jsonStr = jsonStart !== -1 && jsonEnd !== -1
+            ? cleaned.slice(jsonStart, jsonEnd + 1)
+            : cleaned;
+          classification = JSON.parse(jsonStr);
+          console.log(`[step1] fallback ${fallbackModel} classification result:`, classification);
+          fallbackSucceeded = true;
+          break;
+        } catch (fbErr) {
+          console.error(`[step1] fallback ${fallbackModel} failed:`, fbErr);
+          lastErr = fbErr;
+          continue;
+        }
+      }
+      if (!fallbackSucceeded) {
+        console.error("[step1] all fallback models failed; using default classification and recording last error");
+        classification = {
+          category: "other",
+          description: "Unable to classify",
+          confidence: 0,
+          debugError: String(lastErr),
+        };
+      }
     }
 
     console.log("[step2] checking duplicates...");
@@ -166,7 +221,11 @@ Then, in 2-3 sentences, explain the severity, factoring in recurrence if applica
         sendStep("duplicate_check", { duplicatesFound: duplicates.length, nearbyReports: duplicates });
 
         console.log("[step3] calling Gemini with googleSearch grounding...");
-        let severityResult: { assessment: string; grounded: boolean; sources: { uri: string; title?: string }[]; debugError?: string };
+        let severityResult: { assessment: string; grounded: boolean; sources: { uri: string; title?: string }[]; debugError?: string } = {
+          assessment: "Urgency: 3/5\nModerate severity requiring prompt attention.",
+          grounded: false,
+          sources: [],
+        };
         try {
           const res = await withTimeout(
             ai.models.generateContent({
@@ -211,40 +270,35 @@ Then, in 2-3 sentences, explain the severity, factoring in recurrence if applica
           for (const fallbackModel of FALLBACK_MODELS) {
             console.log(`[step3] trying fallback model: ${fallbackModel}`);
             try {
-              let fallbackRes: any;
-              if (fallbackModel === "gemini-3.1-flash-lite") {
-                // TEMPORARY TEST: try grounding on this specific fallback model only
-                fallbackRes = await withTimeout(
-                  ai.models.generateContent({
-                    model: fallbackModel,
-                    contents: [{ role: "user", parts: [{ text: severityPrompt }] }],
-                    config: { tools: [{ googleSearch: {} }] },
-                  }),
-                  9000,
-                  `fallback grounded severity call ${fallbackModel}`
-                );
-                // DEBUG: log raw groundingMetadata for this fallback attempt
-                try {
-                  console.log("[step3] raw groundingMetadata (fallback):", JSON.stringify(fallbackRes.candidates?.[0]?.groundingMetadata, null, 2));
-                } catch (e) {
-                  console.error("[step3] failed to stringify groundingMetadata (fallback):", e);
-                }
-              } else {
-                fallbackRes = await withTimeout(
-                  ai.models.generateContent({
-                    model: fallbackModel,
-                    contents: [{ role: "user", parts: [{ text: severityPrompt }] }],
-                  }),
-                  5000,
-                  `fallback severity call ${fallbackModel}`
-                );
-              }
+              const fallbackRes = await withTimeout(
+                ai.models.generateContent({
+                  model: fallbackModel,
+                  contents: [{ role: "user", parts: [{ text: severityPrompt }] }],
+                  config: { tools: [{ googleSearch: {} }] },
+                }),
+                8000,
+                `fallback grounded severity call ${fallbackModel}`
+              );
 
-              const text = fallbackRes.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+              const parts = fallbackRes.candidates?.[0]?.content?.parts ?? [];
+              const text = parts
+                .filter((p: { text?: string }) => typeof p.text === "string")
+                .map((p: { text?: string }) => p.text)
+                .join("")
+                .trim();
+              const groundingMetadata = fallbackRes.candidates?.[0]?.groundingMetadata;
+              const groundingChunks = groundingMetadata?.groundingChunks ?? [];
+              const sources = groundingChunks
+                .map((c: { web?: { uri?: string; title?: string } }) => c.web)
+                .filter((w: { uri?: string } | undefined): w is { uri: string; title?: string } => !!w?.uri)
+                .map((w: { uri: string; title?: string }) => ({ uri: w.uri, title: w.title ?? w.uri }));
+              const isActuallyGrounded = groundingChunks.length > 0;
+              console.log(`[step3] fallback ${fallbackModel} grounded: ${isActuallyGrounded}`);
+
               severityResult = {
                 assessment: text || "Urgency: 3/5\nModerate severity requiring prompt attention.",
-                grounded: false,
-                sources: [],
+                grounded: isActuallyGrounded,
+                sources,
               };
               fallbackSucceeded = true;
               break;
@@ -294,7 +348,7 @@ Then, in 2-3 sentences, explain the severity, factoring in recurrence if applica
       Return only a single paragraph composed of the three sentences. Always return a complete 3-sentence report; do not repeat instructions or include example bracketed text.`;
 
         console.log("[step4] calling Gemini for draft report (informed by severity)...");
-        let reportResult: string;
+        let reportResult: string = "Report generation failed — please retry.";
         let reportDebugError: string | undefined = undefined;
         try {
           const res = await ai.models.generateContent({
