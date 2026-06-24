@@ -8,6 +8,8 @@ export interface CivicReport {
   lon: number
   timeAgo: string
   report: string
+  status?: 'reported' | 'verified' | 'in_progress' | 'resolved'
+  createdAt?: string
 }
 
 export const seedReports: CivicReport[] = [
@@ -76,5 +78,57 @@ export const seedReports: CivicReport[] = [
     lon: 78.3762,
     timeAgo: '1 day ago',
     report: 'Damaged and uneven footpath tiles near Hitech City metro station present a trip hazard for daily commuters. Municipal Corporation should schedule resurfacing.',
+  },
+  {
+    id: '7',
+    category: 'water_leakage',
+    description: 'Buried water main leak near Kukatpally bus depot causing street flooding.',
+    severity: 'medium',
+    department: 'Water Board',
+    lat: 17.4533,
+    lon: 78.4353,
+    timeAgo: '6 hours ago',
+    status: 'reported',
+    createdAt: '2026-06-16T09:40:00Z',
+    report: 'A buried water main leak near Kukatpally bus depot is causing local street flooding and softening pavements. Water Board should inspect and repair immediately.',
+  },
+  {
+    id: '8',
+    category: 'streetlight',
+    description: 'Flickering streetlight on Erragadda main road leaving the footpath dim after dusk.',
+    severity: 'low',
+    department: 'Electrical/Streetlighting',
+    lat: 17.4398,
+    lon: 78.4445,
+    timeAgo: '8 hours ago',
+    status: 'verified',
+    createdAt: '2026-06-16T18:15:00Z',
+    report: 'A flickering streetlight on Erragadda main road has been verified by the electrical team and needs replacement to restore safe pedestrian visibility.',
+  },
+  {
+    id: '9',
+    category: 'waste_management',
+    description: 'Illegal garbage dump near Dilsukhnagar bus stop attracting stray animals.',
+    severity: 'high',
+    department: 'Sanitation',
+    lat: 17.3894,
+    lon: 78.5049,
+    timeAgo: '3 hours ago',
+    status: 'in_progress',
+    createdAt: '2026-06-15T13:05:00Z',
+    report: 'An illegal waste dump near the Dilsukhnagar bus stop is attracting stray animals and blocking the sidewalk. Sanitation crews are currently on site for cleanup.',
+  },
+  {
+    id: '10',
+    category: 'other',
+    description: 'Temporary vendor stall blocking pavement near LB Nagar metro exits.',
+    severity: 'low',
+    department: 'Municipal Corporation',
+    lat: 17.3806,
+    lon: 78.5098,
+    timeAgo: '2 days ago',
+    status: 'resolved',
+    createdAt: '2026-06-15T07:50:00Z',
+    report: 'A temporary vendor stall blocking the pavement near LB Nagar metro exits was reported and resolved after Municipal Corporation intervention to clear pedestrian access.',
   },
 ]
