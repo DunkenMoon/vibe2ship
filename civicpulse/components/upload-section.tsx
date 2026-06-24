@@ -94,6 +94,31 @@ export function UploadSection() {
       let buffer = ''
       setAnalysisSteps([])
 
+          const STEP_ORDER = ['classify', 'duplicate_check', 'severity_assessment', 'final_report']
+
+          function upsertStep(stepName: string, result: unknown) {
+            setAnalysisSteps((prev) => {
+              const copy = [...prev]
+              const idx = copy.findIndex((s: any) => s.step === stepName)
+              const entry = { step: stepName, result }
+              if (idx !== -1) {
+                copy[idx] = entry
+                return copy
+              }
+              // insert at canonical index if possible
+              const canonicalIndex = Math.max(0, Math.min(STEP_ORDER.length, STEP_ORDER.indexOf(stepName)))
+              if (canonicalIndex >= 0 && canonicalIndex < STEP_ORDER.length) {
+                // find insertion point: first item with index >= canonicalIndex
+                let insertAt = copy.findIndex((s: any) => STEP_ORDER.indexOf(s.step) > canonicalIndex)
+                if (insertAt === -1) insertAt = copy.length
+                copy.splice(insertAt, 0, entry)
+                return copy
+              }
+              copy.push(entry)
+              return copy
+            })
+          }
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -113,7 +138,17 @@ export function UploadSection() {
               try {
                 const event = JSON.parse(payload)
                 if (event?.step && event?.result !== undefined) {
-                  setAnalysisSteps((prev) => [...prev, event])
+                  // Handle retry events inline instead of adding as numbered steps
+                  if (event.step === 'severity_retry') {
+                    upsertStep('severity_assessment', { __retryMessage: (event.result as any)?.message })
+                    continue
+                  }
+                  if (event.step === 'report_retry') {
+                    upsertStep('final_report', { __retryMessage: (event.result as any)?.message })
+                    continue
+                  }
+                  // For canonical steps, upsert so we preserve ordering and allow replacement
+                  upsertStep(event.step, event.result)
                 }
               } catch {
                 // Ignore malformed interim payloads

@@ -7,7 +7,12 @@ if (!process.env.GEMINI_API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL = "gemini-2.5-flash";
-const FALLBACK_MODEL = "gemini-2.0-flash-001";
+const FALLBACK_MODELS = [
+  "gemini-2.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
+  "gemini-3.5-flash",
+];
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000;
@@ -143,9 +148,12 @@ Category: ${classification.category}
 Description: ${classification.description}
 Confidence: ${Math.round(classification.confidence * 100)}%
 Recurrence context: ${duplicateContext}
+Department this will be routed to: ${department}
+
 Assess the urgency of this issue on a scale of 1 to 5 where 1 = minor inconvenience and 5 = immediate safety hazard.
 Start your response with exactly "Urgency: X/5" on the first line.
-Then write 2-3 sentences explaining the severity, factoring in recurrence if applicable, and referencing typical municipal resolution timeframes from Indian cities such as BBMP Bengaluru, BMC Mumbai, or GHMC Hyderabad.`;
+
+Then, in 2-3 sentences, explain the severity, factoring in recurrence if applicable. Specifically reference the CURRENT complaint-resolution timeframe or recent reported backlog for ${department} in its relevant Indian city (e.g. BBMP Bengaluru, BMC Mumbai, GHMC Hyderabad) — find this using current information rather than a general estimate. Mention the timeframe in plain language as part of your explanation, without listing sources or URLs separately.`;
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -158,7 +166,7 @@ Then write 2-3 sentences explaining the severity, factoring in recurrence if app
         sendStep("duplicate_check", { duplicatesFound: duplicates.length, nearbyReports: duplicates });
 
         console.log("[step3] calling Gemini with googleSearch grounding...");
-        let severityResult: { assessment: string; grounded: boolean; sources: { uri: string; title?: string }[] };
+        let severityResult: { assessment: string; grounded: boolean; sources: { uri: string; title?: string }[]; debugError?: string };
         try {
           const res = await withTimeout(
             ai.models.generateContent({
@@ -166,9 +174,15 @@ Then write 2-3 sentences explaining the severity, factoring in recurrence if app
               contents: [{ role: "user", parts: [{ text: severityPrompt }] }],
               config: { tools: [{ googleSearch: {} }] },
             }),
-            8000,
+            9000,
             "grounded severity call"
           );
+          // DEBUG: log raw groundingMetadata to inspect any server-side tool signals
+          try {
+            console.log("[step3] raw groundingMetadata:", JSON.stringify(res.candidates?.[0]?.groundingMetadata, null, 2));
+          } catch (e) {
+            console.error("[step3] failed to stringify groundingMetadata:", e);
+          }
           const parts = res.candidates?.[0]?.content?.parts ?? [];
           const text = parts
             .filter((p: { text?: string }) => typeof p.text === "string")
@@ -190,24 +204,63 @@ Then write 2-3 sentences explaining the severity, factoring in recurrence if app
           if (!dedupedText) throw new Error("Empty grounded response");
           severityResult = { assessment: dedupedText, grounded: isActuallyGrounded, sources };
         } catch (groundedErr) {
-          console.error("[step3] grounded call failed or timed out, retrying without grounding:", groundedErr);
-          try {
-            const fallback = await ai.models.generateContent({
-              model: FALLBACK_MODEL,
-              contents: [{ role: "user", parts: [{ text: severityPrompt }] }],
-            });
-            const text = fallback.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-            severityResult = {
-              assessment: text || "Urgency: 3/5\nModerate severity requiring prompt attention.",
-              grounded: false,
-              sources: [],
-            };
-          } catch (fallbackErr) {
-            console.error("[step3] fallback also failed:", fallbackErr);
+          console.error("[step3] grounded call failed or timed out, will try fallback models:", groundedErr);
+          sendStep("severity_retry", { message: "Retrying with backup model..." });
+          let lastErr: unknown = groundedErr;
+          let fallbackSucceeded = false;
+          for (const fallbackModel of FALLBACK_MODELS) {
+            console.log(`[step3] trying fallback model: ${fallbackModel}`);
+            try {
+              let fallbackRes: any;
+              if (fallbackModel === "gemini-3.1-flash-lite") {
+                // TEMPORARY TEST: try grounding on this specific fallback model only
+                fallbackRes = await withTimeout(
+                  ai.models.generateContent({
+                    model: fallbackModel,
+                    contents: [{ role: "user", parts: [{ text: severityPrompt }] }],
+                    config: { tools: [{ googleSearch: {} }] },
+                  }),
+                  9000,
+                  `fallback grounded severity call ${fallbackModel}`
+                );
+                // DEBUG: log raw groundingMetadata for this fallback attempt
+                try {
+                  console.log("[step3] raw groundingMetadata (fallback):", JSON.stringify(fallbackRes.candidates?.[0]?.groundingMetadata, null, 2));
+                } catch (e) {
+                  console.error("[step3] failed to stringify groundingMetadata (fallback):", e);
+                }
+              } else {
+                fallbackRes = await withTimeout(
+                  ai.models.generateContent({
+                    model: fallbackModel,
+                    contents: [{ role: "user", parts: [{ text: severityPrompt }] }],
+                  }),
+                  5000,
+                  `fallback severity call ${fallbackModel}`
+                );
+              }
+
+              const text = fallbackRes.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+              severityResult = {
+                assessment: text || "Urgency: 3/5\nModerate severity requiring prompt attention.",
+                grounded: false,
+                sources: [],
+              };
+              fallbackSucceeded = true;
+              break;
+            } catch (err) {
+              console.error(`[step3] fallback ${fallbackModel} failed:`, err);
+              lastErr = err;
+              continue;
+            }
+          }
+          if (!fallbackSucceeded) {
+            console.error("[step3] all fallback models failed; using default severity and recording last error");
             severityResult = {
               assessment: "Urgency: 3/5\nModerate severity requiring prompt attention.",
               grounded: false,
               sources: [],
+              debugError: String(lastErr),
             };
           }
         }
@@ -223,51 +276,73 @@ Then write 2-3 sentences explaining the severity, factoring in recurrence if app
         })();
         const urgencyScore = parseInt(urgencyLine.match(/(\d)/)?.[1] ?? "3");
 
-        const reportPrompt = `Draft a formal civic issue report for the ${department} department of a municipal corporation in India.
+        const reportPrompt = `Draft a formal civic issue report for the ${department} department of the municipal corporation in India.
 
-Issue details:
-- Category: ${classification.category}
-- Description: ${classification.description}
-- AI Confidence: ${Math.round(classification.confidence * 100)}%
-- Severity: ${urgencyLine}
-- Priority directive: ${urgencyTone}
-- Duplicate status: ${duplicateNote}
+      Issue details:
+      - Category: ${classification.category}
+      - Description: ${classification.description}
+      - AI Confidence: ${Math.round(classification.confidence * 100)}%
+      - Severity: ${urgencyLine}
+      - Priority directive: ${urgencyTone}
+      - Duplicate status: ${duplicateNote}
 
-Write exactly 3 sentences:
-Sentence 1: Describe the issue and its exact nature with specific details.
-Sentence 2: State the potential impact on citizens and public safety, reflecting the ${urgencyLine} severity.
-Sentence 3: ${urgencyTone} Recommend specific action for the ${department} department.
+      Write exactly three sentences in a formal, neutral tone with no markdown or bullets:
+      1) Describe the issue and its exact nature using specific location or physical details if present in the description above.
+      2) State the potential impact on citizens and public safety, reflecting the ${urgencyLine} severity.
+      3) Conclude with a clear, department-specific recommended action aligned with the priority directive: ${urgencyTone}
 
-Formal tone. No markdown. No bullet points. Plain paragraph only.
-IMPORTANT: Always return a complete 3-sentence report. Never return an empty response.`;
+      Return only a single paragraph composed of the three sentences. Always return a complete 3-sentence report; do not repeat instructions or include example bracketed text.`;
 
         console.log("[step4] calling Gemini for draft report (informed by severity)...");
         let reportResult: string;
+        let reportDebugError: string | undefined = undefined;
         try {
           const res = await ai.models.generateContent({
             model: MODEL,
             contents: [{ role: "user", parts: [{ text: reportPrompt }] }],
           });
           const text = (res.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("").trim();
+          if (text.includes('[') && text.includes(']')) {
+            try {
+              console.warn('[step4] possible placeholder leakage detected in report text', text.slice(0, 400));
+            } catch (e) {
+              console.warn('[step4] possible placeholder leakage detected (unable to stringify)')
+            }
+          }
           if (!text) throw new Error("Empty report response");
           reportResult = text;
         } catch (err) {
           console.error("[step4] report error:", err);
-          try {
-            const fallback = await ai.models.generateContent({
-              model: FALLBACK_MODEL,
-              contents: [{ role: "user", parts: [{ text: reportPrompt }] }],
-            });
-            const text = fallback.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-            reportResult = text || "Report generation failed — please retry.";
-          } catch (fallbackErr) {
-            console.error("[step4] fallback report error:", fallbackErr);
+          let lastErr: unknown = err;
+          let fallbackSucceeded = false;
+          sendStep("report_retry", { message: "Retrying report generation with backup model..." });
+          for (const fallbackModel of FALLBACK_MODELS) {
+            console.log(`[step4] trying fallback model: ${fallbackModel}`);
+            try {
+              const fallbackRes = await withTimeout(
+                ai.models.generateContent({ model: fallbackModel, contents: [{ role: "user", parts: [{ text: reportPrompt }] }] }),
+                5000,
+                `fallback report call ${fallbackModel}`
+              );
+              const text = fallbackRes.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+              reportResult = text || "Report generation failed — please retry.";
+              fallbackSucceeded = true;
+              break;
+            } catch (fallbackErr) {
+              console.error(`[step4] fallback ${fallbackModel} failed:`, fallbackErr);
+              lastErr = fallbackErr;
+              continue;
+            }
+          }
+          if (!fallbackSucceeded) {
+            console.error("[step4] all fallback models failed; using default report failure message and recording last error");
             reportResult = "Report generation failed — please retry.";
+            reportDebugError = String(lastErr);
           }
         }
         sendStep("final_report", {
           department,
-          report: { department, text: reportResult },
+          report: { department, text: reportResult, debugError: reportDebugError },
           duplicateNote,
           urgencyScore,
         });

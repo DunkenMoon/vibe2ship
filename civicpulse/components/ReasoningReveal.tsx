@@ -27,11 +27,18 @@ export function ReasoningReveal({ steps }: { steps: Step[] }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-mono text-sm uppercase text-[#5BBFBF]">{STEP_LABELS[s.step] ?? s.step}</p>
-              <div className="mt-2 text-xs text-[#1A1208]" style={{ fontFamily: "DM Sans, sans-serif" }}>
-                {typeof s.result === "string"
-                  ? <p>{s.result}</p>
-                  : <pre className="whitespace-pre-wrap break-words">{JSON.stringify(s.result, null, 2)}</pre>}
-              </div>
+                {typeof s.result === 'object' && s.result && (s.result as any).__retryMessage ? (
+                  <div className="mt-1">
+                    <p className="text-xs text-[#7A6A58] italic" style={{ fontFamily: 'JetBrains Mono' }}>
+                      {(s.result as any).__retryMessage}
+                    </p>
+                  </div>
+                ) : null}
+                <div className="mt-2 text-xs text-[#1A1208]" style={{ fontFamily: "DM Sans, sans-serif" }}>
+                  {typeof s.result === "string"
+                    ? <p>{s.result}</p>
+                    : <pre className="whitespace-pre-wrap break-words">{JSON.stringify(s.result, null, 2)}</pre>}
+                </div>
             </div>
           </motion.li>
         ))}
