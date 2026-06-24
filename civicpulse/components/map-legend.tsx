@@ -1,34 +1,25 @@
-const LEGEND_ITEMS = [
-  { color: "#5BBFBF", label: "Low severity" },
-  { color: "#C9A84C", label: "Medium severity" },
-  { color: "#E8957A", label: "High severity" },
-]
-
 export function MapLegend() {
+  const levels = [
+    { color: '#5BBFBF', label: 'Low', description: 'Non-urgent' },
+    { color: '#C9A84C', label: 'Medium', description: 'Standard' },
+    { color: '#E8957A', label: 'High', description: 'Urgent' },
+  ]
+
   return (
-    <div className="rounded-lg border border-[#E6DDCF] bg-[rgba(250,247,242,0.95)] px-4 py-3 shadow-sm backdrop-blur-sm">
-      <p
-        className="mb-2 text-[10px] uppercase tracking-widest text-[#7A6A58]"
-        style={{ fontFamily: "var(--font-mono)" }}
-      >
+    <div className="absolute bottom-6 left-6 z-[1000] rounded-lg border border-[#E8E4DB] bg-white p-4 shadow-lg">
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#1A1208]"
+        style={{ fontFamily: 'JetBrains Mono' }}>
         Severity
-      </p>
-      <ul className="flex flex-col gap-1.5">
-        {LEGEND_ITEMS.map(({ color, label }) => (
-          <li key={label} className="flex items-center gap-2">
-            <span
-              className="h-3 w-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: color }}
-            />
-            <span
-              className="text-xs text-[#1A1208]"
-              style={{ fontFamily: "var(--font-sans)" }}
-            >
-              {label}
-            </span>
-          </li>
+      </h3>
+      <div className="space-y-2">
+        {levels.map((l) => (
+          <div key={l.label} className="flex items-center gap-2">
+            <div className="h-3 w-3 flex-shrink-0 rounded-full" style={{ backgroundColor: l.color }} />
+            <span className="text-xs text-[#1A1208]">{l.label}</span>
+            <span className="text-xs text-[#7A6A58]">— {l.description}</span>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   )
 }

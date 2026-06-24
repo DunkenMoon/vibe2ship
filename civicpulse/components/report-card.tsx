@@ -1,76 +1,33 @@
-import { SeverityBadge } from "@/components/severity-badge"
-
-export interface Report {
-  id: string
-  lat: number
-  lon: number
-  category: "pothole" | "water_leakage" | "streetlight" | "waste_management" | "other"
-  description: string
-  severity: number
-  status: "reported" | "verified" | "in_progress" | "resolved"
-  department: string
-  createdAt: string
-}
-
-const CATEGORY_LABELS: Record<Report["category"], string> = {
-  pothole: "Pothole",
-  water_leakage: "Water Leakage",
-  streetlight: "Streetlight",
-  waste_management: "Waste Management",
-  other: "Other",
-}
-
-const STATUS_LABELS: Record<Report["status"], string> = {
-  reported: "Reported",
-  verified: "Verified",
-  in_progress: "In Progress",
-  resolved: "Resolved",
-}
+import { SeverityBadge } from './severity-badge'
+import type { CivicReport } from '@/lib/seed-reports'
 
 interface ReportCardProps {
-  report: Report
+  report: CivicReport
+  isSelected: boolean
+  onClick: () => void
 }
 
-export function ReportCard({ report }: ReportCardProps) {
-  const date = new Date(report.createdAt).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  })
-
+export function ReportCard({ report, isSelected, onClick }: ReportCardProps) {
   return (
-    <div className="rounded-xl border border-[#E6DDCF] bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <p
-          className="text-xs font-medium uppercase tracking-widest text-[#7A6A58]"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          {CATEGORY_LABELS[report.category]}
-        </p>
+    <div
+      onClick={onClick}
+      className={`cursor-pointer rounded-lg border p-4 transition-all hover:shadow-md ${
+        isSelected ? 'border-[#C9A84C] bg-[#FAF7F2]' : 'border-[#E8E4DB] bg-white'
+      }`}
+    >
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-[#1A1208]">{report.department}</h3>
+          <p className="text-xs text-[#7A6A58]" style={{ fontFamily: 'JetBrains Mono' }}>
+            {report.category}
+          </p>
+        </div>
         <SeverityBadge severity={report.severity} />
       </div>
-
-      <p
-        className="mt-2 text-sm text-[#1A1208] line-clamp-2"
-        style={{ fontFamily: "var(--font-sans)" }}
-      >
+      <p className="mb-2 text-sm leading-relaxed text-[#1A1208] line-clamp-2">
         {report.description}
       </p>
-
-      <div className="mt-3 flex items-center justify-between">
-        <span
-          className="text-xs text-[#7A6A58]"
-          style={{ fontFamily: "var(--font-sans)" }}
-        >
-          {report.department}
-        </span>
-        <span
-          className="text-xs text-[#7A6A58]"
-          style={{ fontFamily: "var(--font-sans)" }}
-        >
-          {STATUS_LABELS[report.status]} · {date}
-        </span>
-      </div>
+      <span className="text-xs text-[#7A6A58]">{report.timeAgo}</span>
     </div>
   )
 }

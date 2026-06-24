@@ -1,6 +1,6 @@
 const NAV_LINKS = [
   { label: "How it works", href: "#upload" },
-  { label: "The Map", href: "#" },
+  { label: "The Map", href: "/map" },
   { label: "For Cities", href: "#" },
   { label: "About", href: "#" },
 ]

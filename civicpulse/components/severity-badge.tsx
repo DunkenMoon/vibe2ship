@@ -1,27 +1,21 @@
 interface SeverityBadgeProps {
-  severity: number // 1–5
+  severity: 'low' | 'medium' | 'high'
+  className?: string
 }
 
-function severityLabel(s: number): string {
-  if (s <= 2) return "Low"
-  if (s === 3) return "Medium"
-  return "High"
-}
+export function SeverityBadge({ severity, className = '' }: SeverityBadgeProps) {
+  const config = {
+    low: { bg: '#5BBFBF', label: 'Low' },
+    medium: { bg: '#C9A84C', label: 'Medium' },
+    high: { bg: '#E8957A', label: 'High' },
+  }[severity]
 
-function severityColor(s: number): string {
-  if (s <= 2) return "#5BBFBF"
-  if (s === 3) return "#C9A84C"
-  return "#E8957A"
-}
-
-export function SeverityBadge({ severity }: SeverityBadgeProps) {
-  const color = severityColor(severity)
   return (
     <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
-      style={{ backgroundColor: color, fontFamily: "var(--font-mono)" }}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white ${className}`}
+      style={{ backgroundColor: config.bg }}
     >
-      {severityLabel(severity)} · {severity}
+      {config.label}
     </span>
   )
 }

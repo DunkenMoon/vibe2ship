@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from 'next/font/google'
+import 'leaflet/dist/leaflet.css'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({

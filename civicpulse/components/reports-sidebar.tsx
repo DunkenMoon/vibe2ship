@@ -1,7 +1,8 @@
-import { ReportCard, Report } from "@/components/report-card"
+import { ReportCard } from "@/components/report-card"
+import type { CivicReport } from '@/lib/seed-reports'
 
 interface ReportsSidebarProps {
-  reports: Report[]
+  reports: CivicReport[]
 }
 
 export function ReportsSidebar({ reports }: ReportsSidebarProps) {
@@ -31,7 +32,14 @@ export function ReportsSidebar({ reports }: ReportsSidebarProps) {
             No reports yet. Seed data loads in Unit 2.
           </p>
         ) : (
-          reports.map((r) => <ReportCard key={r.id} report={r} />)
+          reports.map((r) => (
+            <ReportCard
+              key={r.id}
+              report={r}
+              isSelected={false}
+              onClick={() => {}}
+            />
+          ))
         )}
       </div>
     </aside>

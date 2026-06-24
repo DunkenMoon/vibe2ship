@@ -1,61 +1,64 @@
-"use client"
-import { Navbar } from "@/components/navbar"
-import { MapLegend } from "@/components/map-legend"
-import { ReportCard } from "@/components/report-card"
-import { ReportsSidebar } from "@/components/reports-sidebar"
+'use client'
 
-// Placeholder — Unit 2 will replace this import
-const SEED_REPORTS: never[] = []
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { Navbar } from '@/components/navbar'
+import { MapLegend } from '@/components/map-legend'
+import { ReportCard } from '@/components/report-card'
+import { seedReports } from '@/lib/seed-reports'
+
+const CivicMap = dynamic(
+  () => import('@/components/civic-map').then((m) => m.CivicMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full bg-[#FAF7F2] flex items-center justify-center text-sm text-[#7A6A58]">
+        Loading map...
+      </div>
+    ),
+  }
+)
 
 export default function MapPage() {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [reports] = useState(seedReports)
+
   return (
-    <main className="min-h-screen bg-[#FAF7F2]">
+    <div className="flex min-h-screen flex-col bg-[#FAF7F2]">
       <Navbar />
 
-      {/* Page header */}
-      <section className="mx-auto max-w-6xl px-5 py-10">
-        <h1
-          className="font-display text-4xl font-light tracking-tight text-[#1A1208]"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          Community Reports
-        </h1>
-        <p
-          className="mt-2 text-sm text-[#7A6A58]"
-          style={{ fontFamily: "var(--font-sans)" }}
-        >
-          Live civic issues reported by residents — powered by AI triage.
-        </p>
-      </section>
-
-      {/* Map + Sidebar layout */}
-      <section className="mx-auto max-w-6xl px-5 pb-16">
-        <div className="flex flex-col gap-6 lg:flex-row">
-
-          {/* Map container — Unit 2 replaces this div with <MapView> */}
-          <div className="relative flex-1">
-            <div
-              id="map-container"
-              className="h-[480px] w-full rounded-xl border border-[#E6DDCF] bg-[#F2EDE4] flex items-center justify-center"
-            >
-              <p
-                className="text-sm text-[#7A6A58]"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                MAP LOADS HERE — UNIT 2
-              </p>
-            </div>
-
-            {/* Floating legend — bottom-left over map */}
-            <div className="absolute bottom-4 left-4 z-10">
-              <MapLegend />
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <ReportsSidebar reports={SEED_REPORTS} />
+      <div className="border-b border-[#E8E4DB] bg-[#FAF7F2] px-6 py-5">
+        <div className="mx-auto max-w-7xl">
+          <h1 className="text-4xl font-light text-[#1A1208] mb-1" style={{ fontFamily: 'Cormorant Garamond' }}>
+            Community Reports
+          </h1>
+          <p className="text-sm text-[#7A6A58]">View and track civic issues reported in Hyderabad</p>
         </div>
-      </section>
-    </main>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 140px)' }}>
+        <div className="relative flex-1">
+          <CivicMap reports={reports} selectedId={selectedId} onMarkerClick={setSelectedId} />
+          <MapLegend />
+        </div>
+
+        <div className="w-80 flex flex-col border-l border-[#E8E4DB] bg-white overflow-hidden">
+          <div className="flex-shrink-0 border-b border-[#E8E4DB] px-4 py-4">
+            <h2 className="text-sm font-semibold text-[#1A1208]">Active Reports</h2>
+            <p className="text-xs text-[#7A6A58] mt-1">{reports.length} reports in Hyderabad</p>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {reports.map((report) => (
+              <ReportCard
+                key={report.id}
+                report={report}
+                isSelected={selectedId === report.id}
+                onClick={() => setSelectedId(report.id)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

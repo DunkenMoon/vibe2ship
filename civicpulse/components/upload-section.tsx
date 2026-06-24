@@ -80,19 +80,72 @@ export function UploadSection() {
         }),
       });
 
-      const data = await response.json();
-      const allSteps = data.steps ?? [];
-      setAnalysisSteps([]);
-      allSteps.forEach((step: { step: string; result: unknown }, index: number) => {
-        const id = setTimeout(() => {
-          setAnalysisSteps((prev) => [...prev, step]);
-        }, index * 600);
-        timeoutIds.current.push(id);
-      });
-      setIsAnalyzing(false);
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || `Analyze request failed with status ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('Analyze response did not include a readable body')
+      }
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+      setAnalysisSteps([])
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        let eventEndIndex = buffer.indexOf('\n\n')
+        while (eventEndIndex !== -1) {
+          const eventChunk = buffer.slice(0, eventEndIndex).trim()
+          buffer = buffer.slice(eventEndIndex + 2)
+
+          if (eventChunk) {
+            const lines = eventChunk.split('\n')
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue
+              const payload = line.slice(6).trim()
+              if (!payload || payload === '[DONE]') continue
+              try {
+                const event = JSON.parse(payload)
+                if (event?.step && event?.result !== undefined) {
+                  setAnalysisSteps((prev) => [...prev, event])
+                }
+              } catch {
+                // Ignore malformed interim payloads
+              }
+            }
+          }
+
+          eventEndIndex = buffer.indexOf('\n\n')
+        }
+      }
+
+      if (buffer.trim().startsWith('data: ')) {
+        const lines = buffer.trim().split('\n')
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const payload = line.slice(6).trim()
+          if (!payload || payload === '[DONE]') continue
+          try {
+            const event = JSON.parse(payload)
+            if (event?.step && event?.result !== undefined) {
+              setAnalysisSteps((prev) => [...prev, event])
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      setIsAnalyzing(false)
     } catch (err) {
-      setAnalysisError(String(err));
-      setIsAnalyzing(false);
+      setAnalysisError(String(err))
+      setIsAnalyzing(false)
     }
   }
 
