@@ -21,8 +21,8 @@ export function CivicMap({ reports, selectedId, onMarkerClick }: CivicMapProps) 
   const markersRef = useRef<Record<string, import('leaflet').CircleMarker>>({})
 
   useEffect(() => {
-    if (!containerRef.current) return
     if (mapRef.current) return
+    if (!containerRef.current) return
 
     import('leaflet').then((L) => {
       if (mapRef.current) return
@@ -63,7 +63,7 @@ export function CivicMap({ reports, selectedId, onMarkerClick }: CivicMapProps) 
       mapRef.current = null
       markersRef.current = {}
     }
-  }, [])
+  }, [reports])
 
   useEffect(() => {
     import('leaflet').then(() => {

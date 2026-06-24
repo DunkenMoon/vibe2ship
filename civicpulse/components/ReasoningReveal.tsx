@@ -38,6 +38,21 @@ export function ReasoningReveal({ steps }: { steps: Step[] }) {
                   {typeof s.result === "string"
                     ? <p>{s.result}</p>
                     : <pre className="whitespace-pre-wrap break-words">{JSON.stringify(s.result, null, 2)}</pre>}
+                  {typeof s.result === 'object' && s.result && Array.isArray((s.result as any).sources) && (s.result as any).sources.length > 0 ? (
+                    <div className="mt-2 space-y-1">
+                      {(s.result as any).sources.slice(0, 3).map((source: any, i: number) => (
+                        <a
+                          key={i}
+                          href={source.uri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block font-mono text-xs text-[#5BBFBF] underline truncate"
+                        >
+                          {source.title || source.uri}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
             </div>
           </motion.li>

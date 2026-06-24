@@ -222,7 +222,7 @@ export function UploadSection() {
     }
 
     addConfirmedReport(newReport)
-    router.push('/map')
+    setTimeout(() => router.push('/map'), 100)
   }
 
   const handleDiscard = () => {
