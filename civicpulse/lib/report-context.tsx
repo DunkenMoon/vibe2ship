@@ -32,10 +32,26 @@ type ReportContextValue = {
 const ReportContext = createContext<ReportContextValue | null>(null)
 
 export function ReportProvider({ children }: { children: React.ReactNode }) {
-  const [confirmedReports, setConfirmedReports] = useState<Report[]>([])
+  const [confirmedReports, setConfirmedReports] = useState<Report[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const stored = sessionStorage.getItem('civicpulse_confirmed')
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  })
 
   const addConfirmedReport = (report: Report) => {
-    setConfirmedReports((prev) => [...prev, report])
+    setConfirmedReports((prev) => {
+      const next = [...prev, report]
+      try {
+        sessionStorage.setItem('civicpulse_confirmed', JSON.stringify(next))
+      } catch {
+        // sessionStorage unavailable — silent fail, in-memory still works
+      }
+      return next
+    })
   }
 
   return (
