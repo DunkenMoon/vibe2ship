@@ -179,11 +179,7 @@ const renderStepResult = (step: string, result: unknown) => {
     case "final_report":
       return ReportCard(result);
     default:
-      return (
-        <pre className="whitespace-pre-wrap break-words text-xs">
-          {JSON.stringify(result, null, 2)}
-        </pre>
-      );
+      return null;
   }
 };
 
