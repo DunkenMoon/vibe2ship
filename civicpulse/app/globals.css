@@ -133,3 +133,19 @@
     55%, 100% { transform: translateX(120%); }
   }
 }
+
+.civic-popup .leaflet-popup-content-wrapper {
+  background: #fff;
+  border: 1px solid #E8E4DB;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(26, 18, 8, 0.10);
+  padding: 12px 14px;
+}
+
+.civic-popup .leaflet-popup-tip {
+  background: #fff;
+}
+
+.civic-popup .leaflet-popup-content {
+  margin: 0;
+}

@@ -64,7 +64,17 @@ export function CivicMap({ reports, selectedId, onMarkerClick }: CivicMapProps) 
           fillOpacity: 0.9,
         })
           .addTo(mapRef.current!)
-          .bindPopup(`<b>${r.department}</b><br/>${r.description}`)
+          .bindPopup(`
+            <div style="font-family:'DM Sans',sans-serif;min-width:180px;padding:2px 0">
+              <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7A6A58;margin-bottom:4px">${r.category.replace(/_/g,' ')}</div>
+              <div style="font-size:13px;font-weight:600;color:#1A1208;margin-bottom:6px">${r.department}</div>
+              <div style="font-size:12px;color:#7A6A58;line-height:1.5;margin-bottom:8px">${r.description}</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <span style="font-size:10px;font-family:'JetBrains Mono',monospace;background:#FAF7F2;border:1px solid #E8E4DB;border-radius:4px;padding:2px 6px;color:#1A1208">severity ${r.severity}/5</span>
+                <span style="font-size:10px;font-family:'JetBrains Mono',monospace;color:#7A6A58">${(r.status ?? '').replace(/_/g,' ')}</span>
+              </div>
+            </div>
+          `, { maxWidth: 240, className: 'civic-popup' })
         marker.on('click', () => onMarkerClick(r.id))
         markersRef.current[r.id] = marker
       })
@@ -81,13 +91,15 @@ export function CivicMap({ reports, selectedId, onMarkerClick }: CivicMapProps) 
         weight: isSelected ? 3 : 2,
         color: isSelected ? '#1A1208' : '#fff',
       } as Parameters<typeof marker.setStyle>[0])
+      marker.setRadius(isSelected ? 14 : 10)
 
       if (isSelected) {
         const r = reports.find((rep) => rep.id === id)
         if (r && mapRef.current) {
           mapRef.current.setView([r.lat, r.lon], mapRef.current.getZoom(), {
             animate: true,
-            duration: 0.5,
+            duration: 0.3,
+            easeLinearity: 0.5,
           })
           marker.openPopup()
         }
