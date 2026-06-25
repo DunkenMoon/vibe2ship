@@ -5,6 +5,7 @@ import { UploadCloud, MapPin } from "lucide-react";
 import { ReasoningReveal } from "@/components/ReasoningReveal";
 import { useReports, severityLabel } from "@/lib/report-context";
 import { Textarea } from "@/components/ui/textarea";
+import BoundingBoxOverlay from "@/components/BoundingBoxOverlay";
 
 const NEIGHBORHOODS: Record<string, { lat: number; lon: number }> = {
   "Banjara Hills":  { lat: 17.4156, lon: 78.4480 },
@@ -52,6 +53,8 @@ export function UploadSection() {
   const [activeLon, setActiveLon] = useState(DEFAULT_LON)
   const [locationConfirmed, setLocationConfirmed] = useState(false)
   const inputRef   = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgDims, setImgDims] = useState<{ w: number; h: number } | null>(null);
   const timeoutIds = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -254,6 +257,7 @@ export function UploadSection() {
     setAnalysisSteps([])
     setSelectedFile(null)
     setPreview(null)
+    setImgDims(null)
     setAnalysisError(null)
     setLocationInput("")
     setActiveLat(DEFAULT_LAT)
@@ -273,8 +277,37 @@ export function UploadSection() {
             onClick={() => inputRef.current?.click()}
           >
             {preview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="Selected" className="max-h-48 rounded-lg object-contain" />
+              <div style={{ position: "relative", display: "inline-block" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={imgRef}
+                  src={preview}
+                  alt="Selected"
+                  className="max-h-48 rounded-lg object-contain"
+                  onLoad={() => {
+                    if (imgRef.current) {
+                      setImgDims({
+                        w: imgRef.current.clientWidth,
+                        h: imgRef.current.clientHeight,
+                      });
+                    }
+                  }}
+                />
+                {(() => {
+                  const classifyResult = analysisSteps.find((s) => s.step === "classify")?.result as any;
+                  const bbox = classifyResult?.boundingBox;
+                  if (!imgDims || !bbox) return null;
+                  return (
+                    <BoundingBoxOverlay
+                      box={bbox}
+                      imageWidth={imgDims.w}
+                      imageHeight={imgDims.h}
+                      severity={classifyResult?.severity ?? 3}
+                      category={classifyResult?.category ?? "issue"}
+                    />
+                  );
+                })()}
+              </div>
             ) : (
               <>
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal/10">

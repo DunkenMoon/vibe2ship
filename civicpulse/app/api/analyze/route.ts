@@ -50,6 +50,54 @@ interface ExistingReport {
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.MOCK_AI === "true") {
+      const encoder = new TextEncoder();
+      const mockStream = new ReadableStream({
+        start(controller) {
+          const steps = [
+            {
+              step: "classify",
+              result: {
+                category: "pothole",
+                description: "Large pothole approx 40cm across at intersection",
+                confidence: 0.92,
+                severity: 4,
+                boundingBox: { ymin: 310, xmin: 220, ymax: 590, xmax: 680 },
+              },
+            },
+            {
+              step: "duplicate_check",
+              result: { duplicatesFound: 0, nearbyReports: [] },
+            },
+            {
+              step: "severity_assessment",
+              result: {
+                assessment: "Urgency: 4/5\nSevere pothole posing safety risk. GHMC Roads typically resolves high-severity potholes within 3–5 business days.",
+                grounded: true,
+                sources: [{ uri: "https://ghmc.gov.in/roads", title: "GHMC Road Repair Policy" }],
+              },
+            },
+            {
+              step: "final_report",
+              result: {
+                report: {
+                  department: "GHMC Roads Department",
+                  reportText: "Severe pothole detected at Banjara Hills Road No. 12. Immediate repair required.",
+                },
+              },
+            },
+          ];
+          for (const step of steps) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(step)}\n\n`));
+          }
+          controller.close();
+        },
+      });
+      return new Response(mockStream, {
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+      });
+    }
+
     const { imageBase64, mimeType, lat, lon, existingReports = [] } = await req.json();
 
     console.log("[analyze] received request", {
@@ -97,8 +145,9 @@ export async function POST(req: NextRequest) {
 Classify it into exactly one of: pothole, water_leakage, streetlight, waste_management, other
 Provide a factual one-sentence description of what is visible.
 Provide a confidence score from 0.0 to 1.0.
+Also identify the primary issue location in the frame and return its bounding box as ymin, xmin, ymax, xmax normalized to a 0–1000 scale where (0,0) is top-left.
 Respond ONLY with valid JSON, no markdown, no code blocks, no extra text:
-{"category":"...","description":"...","confidence":0.0}`,
+{"category":"...","description":"...","confidence":0.0,"severity":3,"boundingBox":{"ymin":0,"xmin":0,"ymax":500,"xmax":500}}`,
         },
       ],
     }];

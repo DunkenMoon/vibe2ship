@@ -1,4 +1,8 @@
+"use client"
+
 import { MapIcon } from "lucide-react"
+import { motion } from "framer-motion"
+import StatCounter from "@/components/StatCounter"
 
 export function Hero() {
   return (
@@ -40,6 +44,16 @@ export function Hero() {
               View the Map
             </a>
           </div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+            className="mt-14 flex gap-10 flex-wrap"
+          >
+            <StatCounter value={1240} suffix="+" label="Issues Reported" duration={1600} />
+            <StatCounter value={89} suffix="%" label="Resolved in 7 Days" duration={1800} />
+            <StatCounter value={14} suffix="+" label="Departments Linked" duration={1400} />
+          </motion.div>
         </div>
       </div>
     </section>
